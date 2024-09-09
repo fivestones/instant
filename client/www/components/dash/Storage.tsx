@@ -698,7 +698,10 @@ export function StorageTab({
   app: InstantApp;
   isEnabled?: boolean;
 }) {
-  if (isEnabled) {
+  // Force storage to be enabled
+  const storageEnabled = true;
+  
+  if (storageEnabled) {
     return <StorageEnabledTab className={className} app={app} />;
   } else {
     return <StorageDisabledTab className={className} app={app} />;
