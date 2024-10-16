@@ -23,7 +23,7 @@
    (java.util UUID)))
 
 (def use-local-storage
-  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+  (= (System/getenv "REACT_APP_USE_LOCAL_STORAGE") "true"))
 
 (defn req->app-id! [req]
   (ex/get-param! req [:headers "app-id"] uuid-util/coerce))

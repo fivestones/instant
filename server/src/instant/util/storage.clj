@@ -12,7 +12,7 @@
    (java.util UUID)))
 
 (def use-local-storage
-  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+  (= (System/getenv "REACT_APP_USE_LOCAL_STORAGE") "true"))
 
 ;; scopes filename to app-id directory
 (defn ->object-key [app-id filename]

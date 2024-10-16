@@ -698,9 +698,10 @@ export function StorageTab({
   app: InstantApp;
   isEnabled?: boolean;
 }) {
-  // Force storage to be enabled
-  const storageEnabled = true;
-  
+  // Check if local storage is enabled via environment variable
+  const storageEnabled =
+    process.env.REACT_APP_USE_LOCAL_STORAGE === 'true' || isEnabled;
+
   if (storageEnabled) {
     return <StorageEnabledTab className={className} app={app} />;
   } else {

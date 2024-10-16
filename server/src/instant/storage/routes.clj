@@ -14,7 +14,7 @@
    (java.util UUID)))
 
 (def use-local-storage
-  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+  (= (System/getenv "REACT_APP_USE_LOCAL_STORAGE") "true"))
 
 (defn buckets-get [_req]
   (if use-local-storage

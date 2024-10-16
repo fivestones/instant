@@ -649,7 +649,7 @@
 (def default-subscription "Free")
 
 (def use-local-storage
-  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+  (= (System/getenv "REACT_APP_USE_LOCAL_STORAGE") "true"))
 
 (defn calculate-storage-usage [app-id]
   (if use-local-storage

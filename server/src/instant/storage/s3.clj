@@ -1,4 +1,4 @@
-(def use-local-storage (System/getenv "USE_LOCAL_STORAGE"))
+(def use-local-storage (System/getenv "REACT_APP_USE_LOCAL_STORAGE"))
 
 (ns instant.storage.s3
   (:require [clojure.java.io :as io]
