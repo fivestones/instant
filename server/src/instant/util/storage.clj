@@ -11,6 +11,8 @@
   (:import
    (java.util UUID)))
 
+(def use-local-storage
+  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
 
 ;; scopes filename to app-id directory
 (defn ->object-key [app-id filename]
@@ -59,11 +61,12 @@
                                                   :ctx ctx}
                                                  {"path" filepath})})))))
 
-
-(defn upload-image-to-s3 [app-id filename image-url]
+(defn upload-image [app-id filename image-url]
   (let [object-key (->object-key app-id filename)]
     (storage-beta/assert-storage-enabled! app-id)
-    (s3-util/upload-image-to-s3 object-key image-url)))
+    (if use-local-storage
+      (local-util/put-file filename (.getBytes (slurp image-url)))
+      (s3-util/upload-image-to-s3 object-key image-url))))
 
 (defn create-signed-download-url!
   ([app-id filename current-user]
@@ -87,7 +90,9 @@
   ([app-id filename]
    (let [object-key (->object-key app-id filename)]
      (storage-beta/assert-storage-enabled! app-id)
-     (str (s3-util/signed-upload-url object-key)))))
+     (if use-local-storage
+       {:message "Upload file locally"}
+       (str (s3-util/signed-upload-url object-key))))))
 
 (comment
   (def app-id  #uuid "524bc106-1f0d-44a0-b222-923505264c47")
@@ -107,13 +112,14 @@
 
 ;; Retrieves all files that have been uploaded via Storage APIs
 (defn list-files! [app-id subdirectory]
-  (let [_ (storage-beta/assert-storage-enabled! app-id)
-        prefix (if (string/blank? subdirectory)
+  (let [prefix (if (string/blank? subdirectory)
                  app-id
-                 (str app-id "/" subdirectory))
-        objects-resp (s3-util/list-app-objects prefix)
-        objects (:object-summaries objects-resp)]
-    (map format-object objects)))
+                 (str app-id "/" subdirectory))]
+    (if use-local-storage
+      (map local-util/format-object (local-util/list-files))
+      (let [objects-resp (s3-util/list-app-objects prefix)
+            objects (:object-summaries objects-resp)]
+        (map format-object objects)))))
 
 ;; Deletes a single file by name/path (e.g. "demo.png", "profiles/me.jpg")
 (defn delete-file!
@@ -125,7 +131,9 @@
   ([app-id filename]
    (let [key (->object-key app-id filename)]
      (storage-beta/assert-storage-enabled! app-id)
-     (s3-util/delete-object key))))
+     (if use-local-storage
+       (local-util/delete-file filename)
+       (s3-util/delete-object key)))))
 
 ;; Deletes a multiple files by name/path (e.g. "demo.png", "profiles/me.jpg")
 (defn bulk-delete-files! [app-id filenames]

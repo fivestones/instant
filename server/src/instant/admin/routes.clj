@@ -22,6 +22,9 @@
   (:import
    (java.util UUID)))
 
+(def use-local-storage
+  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+
 (defn req->app-id! [req]
   (ex/get-param! req [:headers "app-id"] uuid-util/coerce))
 
@@ -348,36 +351,63 @@
 
 (defn signed-download-url-get [req]
   (let [{app-id :app_id} (req->admin-token! req)
-        filename (ex/get-param! req [:params :filename] string-util/coerce-non-blank-str)
-        data (storage-util/create-signed-download-url! app-id filename)]
-    (response/ok {:data data})))
+        filename (ex/get-param! req [:params :filename] string-util/coerce-non-blank-str)]
+    (if use-local-storage
+      (let [file-path (str "storage/" app-id "/" filename)]
+        (if (.exists (java.io.File. file-path))
+          (response/ok {:data {:message "File available locally" :path file-path}})
+          (response/not-found {:error "File not found"})))
+      (let [data (storage-util/create-signed-download-url! app-id filename)]
+        (response/ok {:data data})))))
 
 (defn signed-upload-url-post [req]
   (let [{app-id :app_id} (req->admin-token! req)
-        filename (ex/get-param! req [:body :filename] string-util/coerce-non-blank-str)
-        data (storage-util/create-signed-upload-url! app-id filename)]
-    (response/ok {:data data})))
+        filename (ex/get-param! req [:body :filename] string-util/coerce-non-blank-str)]
+    (if use-local-storage
+      (do
+        ;; Simulate a local upload (for example, create an empty file)
+        (spit (str "storage/" app-id "/" filename) "")
+        (response/ok {:data {:message "File uploaded locally"}}))
+      (let [data (storage-util/create-signed-upload-url! app-id filename)]
+        (response/ok {:data data})))))
 
 ;; Retrieves all files that have been uploaded via Storage APIs
 (defn files-get [req]
   (let [{app-id :app_id} (req->admin-token! req)
-        subdirectory (-> req :params :subdirectory)
-        data (storage-util/list-files! app-id subdirectory)]
-    (response/ok {:data data})))
+        subdirectory (-> req :params :subdirectory)]
+    (if use-local-storage
+      (let [directory (str "storage/" app-id "/" (or subdirectory ""))
+            files (map #(.getName %) (file-seq (java.io.File. directory)))]
+        (response/ok {:data files}))
+      (let [data (storage-util/list-files! app-id subdirectory)]
+        (response/ok {:data data})))))
 
 ;; Deletes a single file by name/path (e.g. "demo.png", "profiles/me.jpg")
 (defn file-delete [req]
   (let [{app-id :app_id} (req->admin-token! req)
-        filename (ex/get-param! req [:params :filename] string-util/coerce-non-blank-str)
-        data (storage-util/delete-file! app-id filename)]
-    (response/ok {:data data})))
+        filename (ex/get-param! req [:params :filename] string-util/coerce-non-blank-str)]
+    (if use-local-storage
+      (let [file (java.io.File. (str "storage/" app-id "/" filename))]
+        (if (.delete file)
+          (response/ok {:message "File deleted locally"})
+          (response/not-found {:error "File not found"})))
+      (let [data (storage-util/delete-file! app-id filename)]
+        (response/ok {:data data})))))
 
 ;; Deletes a multiple files by name/path (e.g. "demo.png", "profiles/me.jpg")
 (defn files-delete [req]
   (let [{app-id :app_id} (req->admin-token! req)
-        filenames (ex/get-param! req [:body :filenames] seq)
-        data (storage-util/bulk-delete-files! app-id filenames)]
-    (response/ok {:data data})))
+        filenames (ex/get-param! req [:body :filenames] seq)]
+    (if use-local-storage
+      (let [results (map (fn [filename]
+                           (let [file (java.io.File. (str "storage/" app-id "/" filename))]
+                             (if (.delete file)
+                               {:filename filename :status "deleted"}
+                               {:filename filename :status "not found"})))
+                         filenames)]
+        (response/ok {:results results}))
+      (let [data (storage-util/bulk-delete-files! app-id filenames)]
+        (response/ok {:data data})))))
 
 (comment
   (def counters-app-id  #uuid "5f607e08-b271-489a-8430-108f8d0e22e7")

@@ -648,11 +648,16 @@
 
 (def default-subscription "Free")
 
+(def use-local-storage
+  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+
 (defn calculate-storage-usage [app-id]
-  (let [objects-resp (s3-util/list-app-objects app-id)
-        objects (:object-summaries objects-resp)
-        usage (reduce (fn [acc obj] (+ acc (:size obj))) 0 objects)]
-    usage))
+  (if use-local-storage
+    (let [files (local-util/list-files app-id)]
+      (reduce (fn [acc file] (+ acc (.length (java.io.File. file)))) 0 files))
+    (let [objects-resp (s3-util/list-app-objects app-id)
+          objects (:object-summaries objects-resp)]
+      (reduce (fn [acc obj] (+ acc (:size obj))) 0 objects))))
 
 (comment
   (def app-id  #uuid "524bc106-1f0d-44a0-b222-923505264c47")

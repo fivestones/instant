@@ -6,21 +6,30 @@
             [instant.util.string :as string-util]
             [instant.util.http :as http-util]
             [instant.util.storage :as storage-util]
+            [instant.storage.local :as local-util]
             [instant.model.app-user :as app-user-model]
             [instant.model.app-user-refresh-token :as app-user-refresh-token-model]
             [instant.storage.s3 :as s3-util])
   (:import
    (java.util UUID)))
 
+(def use-local-storage
+  (= (System/getenv "USE_LOCAL_STORAGE") "true"))
+
 (defn buckets-get [_req]
-  (let [buckets (s3-util/list-buckets)]
-    (response/ok {:data (map #(select-keys % [:name]) buckets)})))
+  (if use-local-storage
+    (response/ok {:data [{:name "local-storage"}]})
+    (let [buckets (s3-util/list-buckets)]
+      (response/ok {:data (map #(select-keys % [:name]) buckets)}))))
 
 (defn objects-get [req]
-  (let [bucket (-> req :params :bucket)
-        objects-resp (s3-util/list-objects bucket)
-        objects (:object-summaries objects-resp)]
-    (response/ok {:data (map #(select-keys % [:key :size :owner :etag]) objects)})))
+  (let [bucket (-> req :params :bucket)]
+    (if use-local-storage
+      (let [files (local-util/list-files)]
+        (response/ok {:data (map (fn [f] {:key f}) files)}))
+      (let [objects-resp (s3-util/list-objects bucket)
+            objects (:object-summaries objects-resp)]
+        (response/ok {:data (map #(select-keys % [:key :size :owner :etag]) objects)})))))
 
 (comment
   (def b s3-util/default-bucket)
@@ -35,14 +44,21 @@
     {:app-id app-id :filename filename :current-user current-user}))
 
 (defn signed-download-url-get [req]
-  (let [{:keys [app-id filename current-user]} (req->app-file! req (:params req))
-        data (storage-util/create-signed-download-url! app-id filename current-user)]
-    (response/ok {:data data})))
+  (let [{:keys [app-id filename current-user]} (req->app-file! req (:params req))]
+    (if use-local-storage
+      (let [file-stream (local-util/get-file filename)]
+        (response/ok {:data {:message "File retrieved locally"}}))
+      (let [data (storage-util/create-signed-download-url! app-id filename current-user)]
+        (response/ok {:data data})))))
 
 (defn signed-upload-url-post [req]
-  (let [{:keys [app-id filename current-user]} (req->app-file! req (:body req))
-        data (storage-util/create-signed-upload-url! app-id filename current-user)]
-    (response/ok {:data data})))
+  (let [{:keys [app-id filename current-user]} (req->app-file! req (:body req))]
+    (if use-local-storage
+      (do
+        (local-util/put-file filename (.getBytes "Upload content"))  ;; Replace with real file content
+        (response/ok {:data {:message "File uploaded locally"}}))
+      (let [data (storage-util/create-signed-upload-url! app-id filename current-user)]
+        (response/ok {:data data})))))
 
 (defn file-delete [req]
   (let [{:keys [app-id filename current-user]} (req->app-file! req (:params req))

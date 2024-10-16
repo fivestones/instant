@@ -1,3 +1,5 @@
+(def use-local-storage (System/getenv "USE_LOCAL_STORAGE"))
+
 (ns instant.storage.s3
   (:require [clojure.java.io :as io]
             [clj-http.client :as clj-http]
