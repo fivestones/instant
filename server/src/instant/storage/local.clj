@@ -12,6 +12,14 @@
 (defn list-files []
   (map #(.getName %) (.listFiles (io/file storage-dir))))
 
+(defn format-object [file]
+  {:key (.getName file)
+   :name (.getName file)
+   :size (.length file)
+   :owner "local-user" ;; Placeholder, since local files might not have an owner.
+   :etag nil ;; No etag available for local files.
+   :last_modified (.lastModified file)})
+   
 ;; Get a file's content as an input stream
 (defn get-file [filename]
   (io/input-stream (str storage-dir "/" filename)))

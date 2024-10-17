@@ -6,7 +6,8 @@
             [instant.model.app-user-refresh-token :as app-user-refresh-token-model]
             [instant.db.cel :as cel]
             [instant.storage.s3 :as s3-util]
-            [instant.storage.beta :as storage-beta])
+            [instant.storage.beta :as storage-beta]
+            [instant.storage.local :as local-util])
 
   (:import
    (java.util UUID)))

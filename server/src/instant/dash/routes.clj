@@ -56,7 +56,8 @@
             [instant.storage.s3 :as s3-util]
             [instant.storage.beta :as storage-beta]
             [instant.model.instant-personal-access-token :as instant-personal-access-token-model]
-            [instant.model.schema :as schema-model])
+            [instant.model.schema :as schema-model]
+            [instant.storage.local :as local-util])
   (:import
    (java.util UUID)
    (com.stripe.model.checkout Session)))
