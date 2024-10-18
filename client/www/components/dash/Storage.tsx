@@ -15,6 +15,8 @@ import { Button, Checkbox, cn, SectionHeading } from '@/components/ui';
 import { TokenContext } from '@/lib/contexts';
 import { errorToast, successToast } from '@/lib/toast';
 
+console.log('NEXT_PUBLIC_USE_LOCAL_STORAGE:', process.env.NEXT_PUBLIC_USE_LOCAL_STORAGE);
+
 type StorageObject = {
   key: string;
   size: number;
@@ -700,7 +702,7 @@ export function StorageTab({
 }) {
   // Check if local storage is enabled via environment variable
   const storageEnabled =
-    process.env.REACT_APP_USE_LOCAL_STORAGE === 'true' || isEnabled;
+    process.env.NEXT_PUBLIC_USE_LOCAL_STORAGE === 'true' || isEnabled;
 
   if (storageEnabled) {
     return <StorageEnabledTab className={className} app={app} />;

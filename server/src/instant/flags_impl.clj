@@ -65,10 +65,16 @@
                   :receive-q session/receive-q
                   :pending-handlers (atom #{})}]
 
+      (require '[instant.util.tracer :as tracer])
+
       ;; Get results in foreground so that flags are initialized before we return
       (doseq [{:keys [query transform]} queries
               :let [data (instaql/query ctx query)
                     result (admin-model/instaql-nodes->object-tree {} attrs data)]]
+        ;; Log the query using `tracer/record-info!`
+        (tracer/record-info! {:name "custom/query-log"
+                              :attributes {:query (str query) :result result}})
+        ;; Swap the result into the atom
         (swap-result! query-results-atom query transform result 0))
 
       (session/on-open store/store-conn socket)

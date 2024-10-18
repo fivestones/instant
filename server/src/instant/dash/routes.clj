@@ -286,7 +286,8 @@
 ;; Dash
 
 (defn dash-get [req]
-  (let [{:keys [id email]} (req->auth-user! req)
+  (tracer/record-info! {:name "dash-get-log" :attributes {:message "dash-get executed"}})
+  (let [{:keys [id email]} (req->auth-user! req) 
         apps (app-model/get-all-for-user {:user-id id})
         profile (instant-profile-model/get-by-user-id {:user-id id})
         invites (instant-app-member-invites-model/get-pending-for-invitee {:email email})
